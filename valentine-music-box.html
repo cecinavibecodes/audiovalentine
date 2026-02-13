@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Valentine's Day 💕</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #3d2940 0%, #5a4553 100%);
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Subtle background particles */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .photo-card {
+            position: relative;
+            width: 420px;
+            background: linear-gradient(135deg, #ffd4e5 0%, #ffc4d6 50%, #ffe0eb 100%);
+            border-radius: 35px;
+            padding: 30px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .photo-strip-container {
+            width: 100%;
+            height: 450px;
+            background: white;
+            border-radius: 25px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-strip {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transition: transform 0.3s ease-out;
+        }
+
+        .photo-strip img {
+            width: 100%;
+            height: 450px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .waveform-container {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin-bottom: 10px;
+            padding: 0 20px;
+        }
+
+        .sound-bar {
+            width: 3px;
+            background: #ff69b4;
+            border-radius: 2px;
+            transition: height 0.05s ease;
+            min-height: 4px;
+        }
+
+        .message-text {
+            text-align: center;
+            color: #8b6f7a;
+            font-size: 15px;
+            font-style: italic;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .message-text.visible {
+            opacity: 1;
+        }
+
+        .handle-container {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: grab;
+            z-index: 101;
+            transition: transform 0.15s;
+        }
+
+        .handle-container:active {
+            cursor: grabbing;
+        }
+
+        .handle-container:hover .handle {
+            transform: scale(1.05);
+        }
+
+        .handle {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .handle img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.4));
+        }
+
+        .instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.95);
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.5s;
+        }
+
+        .instructions.hidden {
+            opacity: 0;
+        }
+
+        .instructions h1 {
+            font-size: 44px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            color: #ffc4d6;
+            text-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
+            font-family: 'Georgia', serif;
+        }
+
+        .instructions p {
+            font-size: 19px;
+            margin: 10px 0;
+            opacity: 0.95;
+            line-height: 1.6;
+            max-width: 400px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div class="photo-card" id="photoCard" style="display: none;">
+            <div class="photo-strip-container">
+                <div class="photo-strip" id="photoStrip"></div>
+            </div>
+            
+            <div class="waveform-container" id="waveform"></div>
+            <div class="message-text" id="messageText">Happy Valentine's Day 💕</div>
+        </div>
+
+        <div class="handle-container" id="handleContainer">
+            <div class="handle">
+                <img src="handle.jpg" alt="Turn me">
+            </div>
+        </div>
+
+        <div class="instructions" id="instructions">
+            <h1>💝 For You</h1>
+            <p>Turn the handle clockwise<br>to start your music box</p>
+        </div>
+    </div>
+
+    <audio id="audio" src="Valentine_s_message.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const audio = document.getElementById('audio');
+        const handleContainer = document.getElementById('handleContainer');
+        const instructions = document.getElementById('instructions');
+        const photoCard = document.getElementById('photoCard');
+        const photoStrip = document.getElementById('photoStrip');
+        const waveform = document.getElementById('waveform');
+        const messageText = document.getElementById('messageText');
+
+        // Photo list - these need to be uploaded to GitHub
+        const photos = [
+            'IMG_9940.jpg',
+            'IMG_9787.jpg',
+            'IMG_9510.jpg',
+            'IMG_9174.jpg',
+            'IMG_9123.jpg',
+            'IMG_9115.jpg',
+            'IMG_7805.jpg',
+            'IMG_7538.jpg',
+            'IMG_7474.jpg',
+            'IMG_6481.jpg',
+            'IMG_6372.jpg',
+            'IMG_4863.JPG',
+            'IMG_4466.jpg',
+            'IMG_4184.jpg',
+            'IMG_2406.jpg',
+            'IMG_0904.jpg',
+            'AA523600-13A2-46FC-AEE0-923F65690A50.JPG'
+        ];
+
+        let isPlaying = false;
+        let rotation = 0;
+        let lastRotation = 0;
+        let audioContext, analyser, source, dataArray, bufferLength;
+        let currentPhotoIndex = 0;
+        let hasStarted = false;
+        let rotationVelocity = 0;
+
+        // Canvas setup
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Load photos into strip
+        photos.forEach((photo, index) => {
+            const img = document.createElement('img');
+            img.src = photo;
+            img.style.position = 'absolute';
+            img.style.top = (index * 450) + 'px';
+            photoStrip.appendChild(img);
+        });
+
+        // Create waveform bars (like Instagram)
+        for (let i = 0; i < 60; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'sound-bar';
+            bar.style.height = '10px';
+            waveform.appendChild(bar);
+        }
+
+        // Initialize Web Audio
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 128;
+                source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+            }
+        }
+
+        // Handle rotation
+        let isDragging = false;
+        handleContainer.addEventListener('mousedown', startDrag);
+        handleContainer.addEventListener('touchstart', startDrag);
+
+        function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight - 80;
+
+            function onMove(moveEvent) {
+                const touch = moveEvent.touches ? moveEvent.touches[0] : moveEvent;
+                const angle = Math.atan2(
+                    touch.clientY - centerY,
+                    touch.clientX - centerX
+                ) * (180 / Math.PI);
+                
+                // Calculate rotation delta
+                let delta = angle - lastRotation;
+                if (delta > 180) delta -= 360;
+                if (delta < -180) delta += 360;
+                
+                rotation += delta;
+                lastRotation = angle;
+                rotationVelocity = Math.abs(delta);
+
+                handleContainer.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+
+                // Start on first turn
+                if (!hasStarted && Math.abs(rotation) > 20) {
+                    hasStarted = true;
+                    instructions.classList.add('hidden');
+                    photoCard.style.display = 'block';
+                    setTimeout(() => messageText.classList.add('visible'), 500);
+                    initAudio();
+                    startPlaying();
+                }
+
+                // Continue playing if turning
+                if (hasStarted && !isPlaying && rotationVelocity > 1) {
+                    startPlaying();
+                }
+            }
+
+            function onEnd() {
+                isDragging = false;
+                rotationVelocity = 0;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchend', onEnd);
+                
+                // Stop after a moment of no movement
+                setTimeout(() => {
+                    if (!isDragging && rotationVelocity === 0) {
+                        stopPlaying();
+                    }
+                }, 100);
+            }
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        }
+
+        function startPlaying() {
+            if (isPlaying) return;
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            audio.play().catch(err => console.log(err));
+            isPlaying = true;
+        }
+
+        function stopPlaying() {
+            if (!isPlaying) return;
+            audio.pause();
+            isPlaying = false;
+        }
+
+        // Animate waveform and photos
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Background hearts
+            ctx.fillStyle = 'rgba(61, 41, 64, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (isPlaying && analyser) {
+                analyser.getByteFrequencyData(dataArray);
+
+                // Animate waveform bars
+                const bars = document.querySelectorAll('.sound-bar');
+                bars.forEach((bar, i) => {
+                    const value = dataArray[Math.floor(i * bufferLength / bars.length)] || 0;
+                    const height = 10 + (value / 255) * 50;
+                    bar.style.height = height + 'px';
+                });
+
+                // Scroll photos based on playback
+                const progress = (audio.currentTime / audio.duration) * 100;
+                const offset = -(progress / 100) * (photos.length * 450);
+                photoStrip.style.transform = `translateY(${offset}px)`;
+
+                // Floating hearts in background
+                if (Math.random() > 0.95) {
+                    ctx.font = '20px Arial';
+                    ctx.fillStyle = `rgba(255, 192, 203, ${Math.random() * 0.3})`;
+                    ctx.fillText('❤︎', Math.random() * canvas.width, canvas.height + 20);
+                }
+            }
+        }
+
+        animate();
+
+        // Reset audio on end
+        audio.addEventListener('ended', () => {
+            audio.currentTime = 0;
+            stopPlaying();
+        });
+    </script>
+</body>
+</html>
